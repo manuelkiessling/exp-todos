@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Todos</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/src/client/main.ts"></script>
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>todos</h1>
+        <form id="new-todo-form" class="new-todo" autocomplete="off">
+          <label for="new-todo" class="visually-hidden">New todo</label>
+          <input id="new-todo" name="title" placeholder="What needs to be done?" maxlength="200" autofocus />
+          <button type="submit">Add</button>
+        </form>
+      </header>
+
+      <p id="error" class="error" role="alert" hidden></p>
+
+      <section id="list-section" class="list-section" aria-label="Todo list">
+        <div id="toggle-all-row" class="toggle-all-row" hidden>
+          <input id="toggle-all" type="checkbox" />
+          <label for="toggle-all">Mark all as complete</label>
+        </div>
+        <ul id="todo-list" class="todo-list" aria-label="Todos"></ul>
+        <p id="empty" class="empty" hidden></p>
+      </section>
+
+      <footer id="footer" class="footer" hidden>
+        <span id="todo-count" role="status"></span>
+        <nav aria-label="Filter todos">
+          <ul class="filters">
+            <li><a href="#/" data-filter="all">All</a></li>
+            <li><a href="#/active" data-filter="active">Active</a></li>
+            <li><a href="#/completed" data-filter="completed">Completed</a></li>
+          </ul>
+        </nav>
+        <button id="clear-completed" type="button" class="clear-completed">Clear completed</button>
+      </footer>
+    </main>
+  </body>
+</html>

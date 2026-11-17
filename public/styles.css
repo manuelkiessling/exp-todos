@@ -1,0 +1,166 @@
+:root {
+  --bg: #f5f5f5;
+  --surface: #ffffff;
+  --text: #1f2328;
+  --muted: #6e7781;
+  --border: #d8dee4;
+  --accent: #b83f45;
+  --done: #8c959f;
+  --error-bg: #ffebe9;
+  --error-text: #82071e;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 2rem 1rem;
+  background: var(--bg);
+}
+
+.app {
+  max-width: 36rem;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
+}
+
+h1 {
+  margin: 0;
+  padding: 1.5rem 1rem 0.5rem;
+  font-size: 3rem;
+  font-weight: 200;
+  text-align: center;
+  color: var(--accent);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.new-todo {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+input[type="text"],
+input:not([type]) {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 0.75rem;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+button {
+  font: inherit;
+  padding: 0.4rem 0.8rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--muted);
+}
+
+.error {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  color: var(--error-text);
+  background: var(--error-bg);
+}
+
+.toggle-all-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.todo-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.todo {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.todo .title {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.todo.completed .title {
+  color: var(--done);
+  text-decoration: line-through;
+}
+
+.todo .actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.empty {
+  margin: 0;
+  padding: 1.5rem 1rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.filters {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.filters a {
+  padding: 0.2rem 0.5rem;
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.filters a[aria-current="page"] {
+  border-color: var(--accent);
+  color: var(--text);
+}
