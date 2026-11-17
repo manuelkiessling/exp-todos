@@ -17,6 +17,11 @@
   box-sizing: border-box;
 }
 
+/* Rules that set `display` would otherwise show elements the UI has hidden. */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   padding: 2rem 1rem;
