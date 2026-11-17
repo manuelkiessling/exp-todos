@@ -29,7 +29,7 @@ body {
 }
 
 .app {
-  max-width: 36rem;
+  max-width: 54rem;
   margin: 0 auto;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -53,6 +53,117 @@ h1 {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 15rem 1fr;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 40rem) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .lists {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.lists {
+  padding: 0.75rem;
+  border-right: 1px solid var(--border);
+}
+
+.list-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.list-links a {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.6rem;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.list-links a:hover {
+  background: var(--bg);
+}
+
+.list-links a[aria-current="page"] {
+  font-weight: 600;
+  background: var(--bg);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.list-links .list-name {
+  overflow-wrap: anywhere;
+}
+
+.list-links .count {
+  min-width: 1.6rem;
+  padding: 0 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+  text-align: center;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.new-list,
+.rename-list {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.list-view {
+  min-width: 0;
+}
+
+.list-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1rem 0;
+}
+
+.list-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.rename-list {
+  flex: 1;
+}
+
+.list-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+button:disabled {
+  color: var(--done);
+  cursor: not-allowed;
+}
+
+button:disabled:hover {
+  border-color: var(--border);
 }
 
 .new-todo {
@@ -129,6 +240,16 @@ button:hover {
 .todo .actions {
   display: flex;
   gap: 0.25rem;
+}
+
+.todo .move {
+  max-width: 9rem;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
 }
 
 .empty {

@@ -12,35 +12,61 @@
     <main class="app">
       <header>
         <h1>todos</h1>
-        <form id="new-todo-form" class="new-todo" autocomplete="off">
-          <label for="new-todo" class="visually-hidden">New todo</label>
-          <input id="new-todo" name="title" placeholder="What needs to be done?" maxlength="200" autofocus />
-          <button type="submit">Add</button>
-        </form>
       </header>
 
       <p id="error" class="error" role="alert" hidden></p>
 
-      <section id="list-section" class="list-section" aria-label="Todo list">
-        <div id="toggle-all-row" class="toggle-all-row" hidden>
-          <input id="toggle-all" type="checkbox" />
-          <label for="toggle-all">Mark all as complete</label>
-        </div>
-        <ul id="todo-list" class="todo-list" aria-label="Todos"></ul>
-        <p id="empty" class="empty" hidden></p>
-      </section>
-
-      <footer id="footer" class="footer" hidden>
-        <span id="todo-count" role="status"></span>
-        <nav aria-label="Filter todos">
-          <ul class="filters">
-            <li><a href="#/" data-filter="all">All</a></li>
-            <li><a href="#/active" data-filter="active">Active</a></li>
-            <li><a href="#/completed" data-filter="completed">Completed</a></li>
-          </ul>
+      <div class="layout">
+        <nav class="lists" aria-label="Lists">
+          <ul id="lists" class="list-links"></ul>
+          <form id="new-list-form" class="new-list" autocomplete="off">
+            <label for="new-list" class="visually-hidden">New list name</label>
+            <input id="new-list" name="name" placeholder="New list" maxlength="50" />
+            <button type="submit">Add list</button>
+          </form>
         </nav>
-        <button id="clear-completed" type="button" class="clear-completed">Clear completed</button>
-      </footer>
+
+        <section id="list-view" class="list-view" aria-labelledby="list-name">
+          <div class="list-header">
+            <h2 id="list-name"></h2>
+            <form id="rename-list-form" class="rename-list" autocomplete="off" hidden>
+              <label id="rename-list-label" for="rename-list-input" class="visually-hidden">New name</label>
+              <input id="rename-list-input" name="name" maxlength="50" />
+              <button type="submit">Save</button>
+              <button id="cancel-rename" type="button">Cancel</button>
+            </form>
+            <div id="list-actions" class="list-actions">
+              <button id="rename-list" type="button">Rename list</button>
+              <button id="delete-list" type="button">Delete list</button>
+            </div>
+          </div>
+
+          <form id="new-todo-form" class="new-todo" autocomplete="off">
+            <label for="new-todo" class="visually-hidden">New todo</label>
+            <input id="new-todo" name="title" placeholder="What needs to be done?" maxlength="200" autofocus />
+            <button type="submit">Add</button>
+          </form>
+
+          <div id="toggle-all-row" class="toggle-all-row" hidden>
+            <input id="toggle-all" type="checkbox" />
+            <label for="toggle-all">Mark all as complete</label>
+          </div>
+          <ul id="todo-list" class="todo-list" aria-label="Todos"></ul>
+          <p id="empty" class="empty" hidden></p>
+
+          <footer id="footer" class="footer" hidden>
+            <span id="todo-count" role="status"></span>
+            <nav aria-label="Filter todos">
+              <ul class="filters">
+                <li><a data-filter="all">All</a></li>
+                <li><a data-filter="active">Active</a></li>
+                <li><a data-filter="completed">Completed</a></li>
+              </ul>
+            </nav>
+            <button id="clear-completed" type="button" class="clear-completed">Clear completed</button>
+          </footer>
+        </section>
+      </div>
     </main>
   </body>
 </html>
