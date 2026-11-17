@@ -1,28 +1,49 @@
-// The browser UI: one in-memory copy of the todo list, re-rendered after every
-// change. Every change goes to the server first; the UI shows the result.
+// The browser UI: one in-memory copy of all lists and todos, re-rendered after
+// every change. Every change goes to the server first; the UI shows the result.
+//
+// The URL names the selected list and filter: #/lists/<id>, #/lists/<id>/active
+// or #/lists/<id>/completed. Anything else shows the first list.
 
-import { MAX_TITLE_LENGTH, parseTitle, type Todo } from "../shared/todo.ts";
+import { MAX_TITLE_LENGTH, parseListName, parseTitle, type Todo, type TodoList } from "../shared/todo.ts";
 import * as api from "./api.ts";
 
 type Filter = "all" | "active" | "completed";
 
 const EMPTY_MESSAGES: Record<Filter, string> = {
-  all: "Nothing to do yet. Add a todo above.",
+  all: "This list is empty. Add a todo above.",
   active: "No active todos.",
   completed: "No completed todos.",
 };
 
-const state: { todos: Todo[]; editingId: string | null } = {
+const state: {
+  lists: TodoList[];
+  todos: Todo[];
+  editingId: string | null;
+  renamingList: boolean;
+} = {
+  lists: [],
   todos: [],
   editingId: null,
+  renamingList: false,
 };
 
-const form = element<HTMLFormElement>("new-todo-form");
-const newTodo = element<HTMLInputElement>("new-todo");
 const errorBox = element<HTMLParagraphElement>("error");
+const listLinks = element<HTMLUListElement>("lists");
+const newListForm = element<HTMLFormElement>("new-list-form");
+const newListInput = element<HTMLInputElement>("new-list");
+const listName = element<HTMLHeadingElement>("list-name");
+const renameForm = element<HTMLFormElement>("rename-list-form");
+const renameInput = element<HTMLInputElement>("rename-list-input");
+const renameLabel = element<HTMLLabelElement>("rename-list-label");
+const cancelRename = element<HTMLButtonElement>("cancel-rename");
+const listActions = element<HTMLDivElement>("list-actions");
+const renameButton = element<HTMLButtonElement>("rename-list");
+const deleteButton = element<HTMLButtonElement>("delete-list");
+const newTodoForm = element<HTMLFormElement>("new-todo-form");
+const newTodoInput = element<HTMLInputElement>("new-todo");
 const toggleAllRow = element<HTMLDivElement>("toggle-all-row");
 const toggleAll = element<HTMLInputElement>("toggle-all");
-const list = element<HTMLUListElement>("todo-list");
+const todoList = element<HTMLUListElement>("todo-list");
 const empty = element<HTMLParagraphElement>("empty");
 const footer = element<HTMLElement>("footer");
 const count = element<HTMLSpanElement>("todo-count");
@@ -36,57 +57,136 @@ function element<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
-function currentFilter(): Filter {
-  switch (location.hash) {
-    case "#/active":
-      return "active";
-    case "#/completed":
-      return "completed";
-    default:
-      return "all";
+function parseRoute(hash: string): { listId: string | undefined; filter: Filter } {
+  const list = /^#\/lists\/([^/]+)(?:\/(active|completed))?$/.exec(hash);
+  if (list?.[1]) {
+    let listId: string | undefined;
+    try {
+      listId = decodeURIComponent(list[1]);
+    } catch {
+      listId = undefined;
+    }
+    return { listId, filter: (list[2] as Filter | undefined) ?? "all" };
   }
+  // Links from before there were lists open the first list.
+  const legacy = /^#\/(active|completed)$/.exec(hash);
+  return { listId: undefined, filter: (legacy?.[1] as Filter | undefined) ?? "all" };
 }
 
-function visibleTodos(filter: Filter): Todo[] {
+function hashFor(listId: string, filter: Filter): string {
+  const base = `#/lists/${encodeURIComponent(listId)}`;
+  return filter === "all" ? base : `${base}/${filter}`;
+}
+
+/** The selected list and filter; an unknown list falls back to the first one. */
+function currentView(): { list: TodoList; filter: Filter } | undefined {
+  const route = parseRoute(location.hash);
+  const list = state.lists.find((candidate) => candidate.id === route.listId) ?? state.lists[0];
+  return list && { list, filter: route.filter };
+}
+
+function todosOf(listId: string): Todo[] {
+  return state.todos.filter((todo) => todo.listId === listId);
+}
+
+function activeCount(listId: string): number {
+  return todosOf(listId).filter((todo) => !todo.completed).length;
+}
+
+function visibleTodos(listId: string, filter: Filter): Todo[] {
+  const todos = todosOf(listId);
   switch (filter) {
     case "active":
-      return state.todos.filter((todo) => !todo.completed);
+      return todos.filter((todo) => !todo.completed);
     case "completed":
-      return state.todos.filter((todo) => todo.completed);
+      return todos.filter((todo) => todo.completed);
     case "all":
-      return state.todos;
+      return todos;
   }
 }
 
 function render(): void {
-  const filter = currentFilter();
-  const visible = visibleTodos(filter);
-  const activeCount = state.todos.filter((todo) => !todo.completed).length;
-  const completedCount = state.todos.length - activeCount;
+  const view = currentView();
+  if (!view) {
+    return;
+  }
+  const { list, filter } = view;
+  // Show the URL of what is on screen, so a reload or bookmark returns here.
+  const canonical = hashFor(list.id, filter);
+  if (location.hash !== canonical) {
+    history.replaceState(null, "", canonical);
+  }
+  document.title = `${list.name} · Todos`;
 
-  list.replaceChildren(...visible.map(renderTodo));
+  listLinks.replaceChildren(...state.lists.map((candidate) => renderListLink(candidate, candidate.id === list.id)));
+
+  listName.textContent = list.name;
+  renameLabel.textContent = `New name for “${list.name}”`;
+  listName.hidden = state.renamingList;
+  renameForm.hidden = !state.renamingList;
+  listActions.hidden = state.renamingList;
+  const onlyList = state.lists.length === 1;
+  deleteButton.disabled = onlyList;
+  deleteButton.title = onlyList ? "The last list can't be deleted" : "";
+  if (state.renamingList && document.activeElement !== renameInput) {
+    renameInput.value = list.name;
+    renameInput.focus();
+    renameInput.select();
+  }
+
+  const todos = todosOf(list.id);
+  const visible = visibleTodos(list.id, filter);
+  const left = activeCount(list.id);
+  const completedCount = todos.length - left;
+
+  todoList.replaceChildren(...visible.map(renderTodo));
   empty.hidden = visible.length > 0;
   empty.textContent = EMPTY_MESSAGES[filter];
 
-  toggleAllRow.hidden = state.todos.length === 0;
-  toggleAll.checked = state.todos.length > 0 && activeCount === 0;
+  toggleAllRow.hidden = todos.length === 0;
+  toggleAll.checked = todos.length > 0 && left === 0;
 
-  footer.hidden = state.todos.length === 0;
-  count.textContent = `${activeCount} ${activeCount === 1 ? "item" : "items"} left`;
+  footer.hidden = todos.length === 0;
+  count.textContent = `${left} ${left === 1 ? "item" : "items"} left`;
   clearButton.hidden = completedCount === 0;
   for (const link of footer.querySelectorAll<HTMLAnchorElement>("a[data-filter]")) {
-    if (link.dataset.filter === filter) {
+    const linkFilter = link.dataset.filter as Filter;
+    link.href = hashFor(list.id, linkFilter);
+    if (linkFilter === filter) {
       link.setAttribute("aria-current", "page");
     } else {
       link.removeAttribute("aria-current");
     }
   }
 
-  const editField = list.querySelector<HTMLInputElement>("input.edit-field");
+  const editField = todoList.querySelector<HTMLInputElement>("input.edit-field");
   if (editField) {
     editField.focus();
     editField.setSelectionRange(editField.value.length, editField.value.length);
   }
+}
+
+function renderListLink(list: TodoList, selected: boolean): HTMLLIElement {
+  const item = document.createElement("li");
+  const link = document.createElement("a");
+  link.href = hashFor(list.id, "all");
+  if (selected) {
+    link.setAttribute("aria-current", "page");
+  }
+  const name = document.createElement("span");
+  name.className = "list-name";
+  name.textContent = list.name;
+  const left = activeCount(list.id);
+  const badge = document.createElement("span");
+  badge.className = "count";
+  badge.textContent = String(left);
+  const hint = document.createElement("span");
+  hint.className = "visually-hidden";
+  hint.textContent = ` ${left === 1 ? "item" : "items"} left`;
+  badge.append(hint);
+  link.append(name, badge);
+  item.append(link);
+  return item;
 }
 
 function renderTodo(todo: Todo): HTMLLIElement {
@@ -126,6 +226,24 @@ function renderTodo(todo: Todo): HTMLLIElement {
   title.textContent = todo.title;
   title.addEventListener("dblclick", () => startEditing(todo.id));
 
+  const actions = document.createElement("span");
+  actions.className = "actions";
+
+  if (state.lists.length > 1) {
+    const move = document.createElement("select");
+    move.className = "move";
+    move.setAttribute("aria-label", `Move “${todo.title}” to list`);
+    for (const list of state.lists) {
+      const option = document.createElement("option");
+      option.value = list.id;
+      option.textContent = list.name;
+      option.selected = list.id === todo.listId;
+      move.append(option);
+    }
+    move.addEventListener("change", () => void run(() => replaceTodo(api.updateTodo(todo.id, { listId: move.value }))));
+    actions.append(move);
+  }
+
   const edit = document.createElement("button");
   edit.type = "button";
   edit.textContent = "Edit";
@@ -138,10 +256,7 @@ function renderTodo(todo: Todo): HTMLLIElement {
   remove.setAttribute("aria-label", `Delete “${todo.title}”`);
   remove.addEventListener("click", () => void run(() => removeTodo(todo.id)));
 
-  const actions = document.createElement("span");
-  actions.className = "actions";
   actions.append(edit, remove);
-
   item.append(toggle, title, actions);
   return item;
 }
@@ -200,34 +315,131 @@ function showError(message: string | null): void {
   errorBox.textContent = message ?? "";
 }
 
-form.addEventListener("submit", (event) => {
+newListForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  const title = parseTitle(newTodo.value);
+  const name = parseListName(newListInput.value);
+  if (!name.ok) {
+    showError(name.error);
+    return;
+  }
+  void run(async () => {
+    const list = await api.createList(name.value);
+    state.lists = [...state.lists, list];
+    newListInput.value = "";
+    history.pushState(null, "", hashFor(list.id, "all"));
+    newTodoInput.focus();
+  });
+});
+
+renameButton.addEventListener("click", () => {
+  state.renamingList = true;
+  render();
+});
+
+cancelRename.addEventListener("click", () => {
+  state.renamingList = false;
+  render();
+});
+
+renameInput.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    state.renamingList = false;
+    render();
+  }
+});
+
+renameForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const view = currentView();
+  if (!view) {
+    return;
+  }
+  const name = parseListName(renameInput.value);
+  if (!name.ok) {
+    showError(name.error);
+    return;
+  }
+  if (name.value === view.list.name) {
+    state.renamingList = false;
+    render();
+    return;
+  }
+  void run(async () => {
+    const renamed = await api.renameList(view.list.id, name.value);
+    state.lists = state.lists.map((list) => (list.id === renamed.id ? renamed : list));
+    // Only a successful rename closes the form, so a taken name can be fixed in place.
+    state.renamingList = false;
+  });
+});
+
+deleteButton.addEventListener("click", () => {
+  const view = currentView();
+  if (!view) {
+    return;
+  }
+  const { list } = view;
+  const todoCount = todosOf(list.id).length;
+  if (todoCount > 0) {
+    const what = todoCount === 1 ? "1 todo" : `${todoCount} todos`;
+    if (!confirm(`Delete the list “${list.name}” and its ${what}?`)) {
+      return;
+    }
+  }
+  void run(async () => {
+    await api.deleteList(list.id);
+    state.lists = state.lists.filter((candidate) => candidate.id !== list.id);
+    state.todos = state.todos.filter((todo) => todo.listId !== list.id);
+  });
+});
+
+newTodoForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const view = currentView();
+  if (!view) {
+    return;
+  }
+  const title = parseTitle(newTodoInput.value);
   if (!title.ok) {
     showError(title.error);
     return;
   }
   void run(async () => {
-    state.todos = [...state.todos, await api.createTodo(title.value)];
-    newTodo.value = "";
+    state.todos = [...state.todos, await api.createTodo(view.list.id, title.value)];
+    newTodoInput.value = "";
   });
 });
 
 toggleAll.addEventListener("change", () => {
+  const view = currentView();
+  if (!view) {
+    return;
+  }
   void run(async () => {
-    state.todos = await api.setAllCompleted(toggleAll.checked);
+    const updated = await api.setAllCompleted(view.list.id, toggleAll.checked);
+    const byId = new Map(updated.map((todo) => [todo.id, todo]));
+    state.todos = state.todos.map((todo) => byId.get(todo.id) ?? todo);
   });
 });
 
 clearButton.addEventListener("click", () => {
+  const view = currentView();
+  if (!view) {
+    return;
+  }
   void run(async () => {
-    await api.clearCompleted();
-    state.todos = state.todos.filter((todo) => !todo.completed);
+    await api.clearCompleted(view.list.id);
+    state.todos = state.todos.filter((todo) => todo.listId !== view.list.id || !todo.completed);
   });
 });
 
-window.addEventListener("hashchange", render);
+window.addEventListener("hashchange", () => {
+  state.editingId = null;
+  state.renamingList = false;
+  render();
+});
 
 void run(async () => {
-  state.todos = await api.listTodos();
+  const [lists, todos] = await Promise.all([api.listLists(), api.listTodos()]);
+  state.lists = lists;
+  state.todos = todos;
 });
